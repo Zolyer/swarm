@@ -3,6 +3,8 @@ import copy
 import json
 from collections import defaultdict
 from typing import List, Callable, Union
+import logging
+logging.basicConfig(level=logging.INFO)
 
 # Package/library imports
 from openai import OpenAI
