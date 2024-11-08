@@ -63,6 +63,8 @@ class Swarm:
             "tools": tools or None,
             "tool_choice": agent.tool_choice,
             "stream": stream,
+            "temperature": agent.temperature,
+            "top_p": agent.top_p,
         }
 
         if tools:
