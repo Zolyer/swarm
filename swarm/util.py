@@ -1,7 +1,7 @@
 import inspect
 from datetime import datetime
 import logging
-
+logger = logging.getLogger('swarm')
 
 def debug_print(debug: bool, *args: str) -> None:
     if not debug:
@@ -16,7 +16,7 @@ def debug_logging(debug: bool, *args: str) -> None:
         return
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     message = " ".join(map(str, args))
-    logging.info(f"\033[97m[\033[90m{timestamp}\033[97m]\033[90m {message}\033[0m")
+    logger.info(f"\033[97m[\033[90m{timestamp}\033[97m]\033[90m {message}\033[0m")
 
 
 def merge_fields(target, source):
