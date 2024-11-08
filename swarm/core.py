@@ -9,7 +9,7 @@ from openai import OpenAI
 
 
 # Local imports
-from .util import function_to_json, debug_print, merge_chunk
+from .util import function_to_json, debug_logging, merge_chunk
 from .types import (
     Agent,
     AgentFunction,
@@ -45,7 +45,7 @@ class Swarm:
             else agent.instructions
         )
         messages = [{"role": "system", "content": instructions}] + history
-        debug_print(debug, "Getting chat completion for...:", messages)
+        debug_logging(debug, "Getting chat completion for...:", messages)
 
         tools = [function_to_json(f) for f in agent.functions]
         # hide context_variables from model
@@ -83,7 +83,7 @@ class Swarm:
                     return Result(value=str(result))
                 except Exception as e:
                     error_message = f"Failed to cast response to string: {result}. Make sure agent functions return a string or Result object. Error: {str(e)}"
-                    debug_print(debug, error_message)
+                    debug_logging(debug, error_message)
                     raise TypeError(error_message)
 
     def handle_tool_calls(
@@ -94,14 +94,13 @@ class Swarm:
         debug: bool,
     ) -> Response:
         function_map = {f.__name__: f for f in functions}
-        partial_response = Response(
-            messages=[], agent=None, context_variables={})
+        partial_response = Response(messages=[], agent=None, context_variables={})
 
         for tool_call in tool_calls:
             name = tool_call.function.name
             # handle missing tool case, skip to next tool
             if name not in function_map:
-                debug_print(debug, f"Tool {name} not found in function map.")
+                debug_logging(debug, f"Tool {name} not found in function map.")
                 partial_response.messages.append(
                     {
                         "role": "tool",
@@ -112,8 +111,7 @@ class Swarm:
                 )
                 continue
             args = json.loads(tool_call.function.arguments)
-            debug_print(
-                debug, f"Processing tool call: {name} with arguments {args}")
+            debug_logging(debug, f"Processing tool call: {name} with arguments {args}")
 
             func = function_map[name]
             # pass context_variables to agent functions
@@ -152,7 +150,6 @@ class Swarm:
         init_len = len(messages)
 
         while len(history) - init_len < max_turns:
-
             message = {
                 "content": "",
                 "sender": agent.name,
@@ -188,15 +185,14 @@ class Swarm:
                 merge_chunk(message, delta)
             yield {"delim": "end"}
 
-            message["tool_calls"] = list(
-                message.get("tool_calls", {}).values())
+            message["tool_calls"] = list(message.get("tool_calls", {}).values())
             if not message["tool_calls"]:
                 message["tool_calls"] = None
-            debug_print(debug, "Received completion:", message)
+            debug_logging(debug, "Received completion:", message)
             history.append(message)
 
             if not message["tool_calls"] or not execute_tools:
-                debug_print(debug, "Ending turn.")
+                debug_logging(debug, "Ending turn.")
                 break
 
             # convert tool_calls to objects
@@ -255,7 +251,6 @@ class Swarm:
         init_len = len(messages)
 
         while len(history) - init_len < max_turns and active_agent:
-
             # get completion with current history, agent
             completion = self.get_chat_completion(
                 agent=active_agent,
@@ -266,14 +261,14 @@ class Swarm:
                 debug=debug,
             )
             message = completion.choices[0].message
-            debug_print(debug, "Received completion:", message)
+            debug_logging(debug, "Received completion:", message)
             message.sender = active_agent.name
             history.append(
                 json.loads(message.model_dump_json())
             )  # to avoid OpenAI types (?)
 
             if not message.tool_calls or not execute_tools:
-                debug_print(debug, "Ending turn.")
+                debug_logging(debug, "Ending turn.")
                 break
 
             # handle function calls, updating context_variables, and switching agents
